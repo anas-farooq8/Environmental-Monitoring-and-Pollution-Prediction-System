@@ -62,7 +62,7 @@ def fetch_historical_weather(start_date, end_date):
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        filename = f'historical_weather.json'
+        filename = f'weather_historical.json'
         filepath = os.path.join(WEATHER_HISTORICAL_DIR, filename)
         with open(filepath, 'w') as f:
             json.dump(data, f, indent=4)

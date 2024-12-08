@@ -1,0 +1,17 @@
+schema: '2.0'
+stages:
+  air_quality:
+    cmd: python scripts/air_collector.py
+    outs:
+    - path: data/air_quality/current/air_quality_current.json
+      hash: md5
+      md5: b14071538f84846900eb4a5c2048b8c7
+      size: 505
+    - path: data/air_quality/forecast/air_quality_forecast.json
+      hash: md5
+      md5: 593ee1d1856c732598260fe0202d01e8
+      size: 39512
+    - path: data/air_quality/historical/air_quality_historical.json
+      hash: md5
+      md5: 12aa3496866c59cf7dfd68c75e013096
+      size: 295826

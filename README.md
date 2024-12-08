@@ -27,3 +27,8 @@ Verify the Install Packages
 `dvc remote default gdrive_remote`
 `dvc repro`
 `dvc push`
+
+### Step 3: Create the PowerShell Script
+
+`New-Item -Path . -Name "collect_and_push.ps1" -ItemType "File" -Force`
+`.\collect_and_push.ps1`

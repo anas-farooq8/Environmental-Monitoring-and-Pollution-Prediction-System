@@ -16,3 +16,12 @@ Install all the dependencies
 
 Verify the Install Packages
 `pip freeze`
+
+### Step 2: Initialize DVC in the Repository
+
+`dvc init`
+`dvc list --dvc-only .`
+`dvc remote add -d gdrive_remote gdrive://<folder_id>`
+`dvc remote modify gdrive_remote gdrive_use_service_account true`
+`dvc remote modify gdrive_remote gdrive_service_account_json_file_path "D:/Semester 7/ML-Ops/course-project-anas-farooq8/dvc-key.json"`
+`dvc remote default gdrive_remote`

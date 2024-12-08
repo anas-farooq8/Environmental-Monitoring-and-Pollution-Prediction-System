@@ -35,11 +35,22 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Optional: Push changes to Git
-Write-Output "Pushing changes to Git repository..."
+# Push changes to Git repository
+Write-Output "Committing and pushing changes to Git..."
 git add .
-git commit -m "Automated data collection and DVC push at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+$commitMessage = "Automated data collection and DVC push at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+git commit -m "$commitMessage"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Git commit failed. Possibly no changes to commit."
+}
 git push
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Git push failed. Check your network connection and Git remote settings."
+    exit 1
+}
+Write-Output "Git push completed successfully."
 
 # Deactivate the virtual environment
 Deactivate
+
+Write-Output "Data collection and pushing process completed successfully."

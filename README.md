@@ -32,3 +32,32 @@ Verify the Install Packages
 
 `New-Item -Path . -Name "collect_and_push.ps1" -ItemType "File" -Force`
 `.\collect_and_push.ps1`
+
+### Step 4: Schedule the Script with Task Scheduler (Windows)
+
+1. Open Task Scheduler:
+
+- Press Win + R, type taskschd.msc, and press Enter.
+
+2. Create a New Task:
+
+- Action: Click on Action > Create Task....
+  Name: Enter a descriptive name, e.g., Environmental Data Collection and Push.
+  Description: (Optional) Automates data collection and versioning using DVC every hour.
+  Security Options:
+  User Account: Choose an account with the necessary permissions.
+  Run whether user is logged on or not: Select this to ensure the task runs in the background.
+  Run with highest privileges: Check this if required by your scripts.
+
+3. Set Triggers:
+
+- Navigate to the "Triggers" Tab:
+  Click New....
+  Begin the task: On a schedule.
+  Settings: Select Daily.
+  Start: Set the date and time you want the scheduling to begin.
+  Advanced Settings:
+  Repeat task every: 1 hour.
+  For a duration of: Indefinitely.
+  Enabled: Ensure this is checked.
+  Click OK.

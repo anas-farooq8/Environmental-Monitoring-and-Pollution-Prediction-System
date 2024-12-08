@@ -1,3 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
 /.venv
+
+# Gdrive connection key
 /dvc-key.json
+
+# Environment variables
 /.env
+
+# Environmental Data
+/data

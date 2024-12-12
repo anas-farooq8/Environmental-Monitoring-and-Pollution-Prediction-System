@@ -61,3 +61,20 @@ Verify the Install Packages
   For a duration of: Indefinitely.
   Enabled: Ensure this is checked.
   Click OK.
+
+4. Set Actions:
+
+Navigate to the "Actions" Tab:
+Click New....
+
+Action: Start a program.
+
+Program/script: powershell.exe
+
+Add arguments:
+-File "D:\Semester 7\ML-Ops\course-project-anas-farooq8\scripts\collect_and_push.ps1"
+
+5. Finalize the Task:
+
+Click OK.
+Authentication: If prompted, enter the password for the user account under which the task will run.

@@ -15,3 +15,18 @@ stages:
       hash: md5
       md5: 12aa3496866c59cf7dfd68c75e013096
       size: 295826
+  weather:
+    cmd: python scripts/weather_collector.py
+    outs:
+    - path: data/weather/current/weather_current.json
+      hash: md5
+      md5: c80bcdfef1b2a882f18627c0133c0458
+      size: 2738
+    - path: data/weather/forecast/weather_forecast.json
+      hash: md5
+      md5: 24f0abdd1a24d85fb8a642179d399b4e
+      size: 395439
+    - path: data/weather/historical/weather_historical.json
+      hash: md5
+      md5: 9ab91ded0116f34df9b2242756224c6e
+      size: 893726

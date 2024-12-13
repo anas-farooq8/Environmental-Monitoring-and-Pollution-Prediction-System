@@ -84,3 +84,14 @@ Authentication: If prompted, enter the password for the user account under which
 ### Step 6: Deploying an API
 
 ### Step 7: Building Flask App
+
+### Step 8: Dockerizing the App
+
+- docker build -t pollution-prediction-app .
+- ```bash
+  docker run -d -p 5000:5000 --env-file .env --name pollution-app pollution-prediction-app
+  ```
+
+- docker ps
+- docker logs -f pollution-app
+- docker stop pollution-app

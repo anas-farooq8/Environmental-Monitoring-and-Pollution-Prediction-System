@@ -1,5 +1,3 @@
-# app/app.py
-
 from flask import Flask, render_template, request, jsonify
 import os
 import requests
@@ -23,9 +21,9 @@ LONGITUDE = os.getenv('LONGITUDE')
 LOCATION = f"{LATITUDE},{LONGITUDE}"
 
 # Model and scaler paths
-FEATURE_SCALER_PATH = "../models/feature_scaler.joblib"
-TARGET_SCALER_PATH = "../models/target_scaler.joblib"
-MODEL_PATH = "../models/model.keras"
+FEATURE_SCALER_PATH = "models/feature_scaler.joblib"
+TARGET_SCALER_PATH = "models/target_scaler.joblib"
+MODEL_PATH = "models/model.keras"
 
 # AQI Classification Ranges
 AQI_RANGES = [

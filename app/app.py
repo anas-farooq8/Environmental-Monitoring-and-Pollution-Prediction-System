@@ -5,6 +5,7 @@ import requests
 from dotenv import load_dotenv
 import pandas as pd
 import joblib
+from sklearn.metrics import mean_squared_error
 from tensorflow.keras.models import load_model
 from datetime import datetime
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
@@ -28,6 +29,14 @@ PREDICTION_VALUE_PM2_5 = Gauge('prediction_value_pm2_5', 'Predicted value for PM
 PREDICTION_VALUE_O3 = Gauge('prediction_value_o3', 'Predicted value for O3')
 PREDICTION_VALUE_CO = Gauge('prediction_value_co', 'Predicted value for CO')
 
+# Metrics for Mean Squared Error
+PREDICTION_MSE_SO2 = Gauge('prediction_mse_so2', 'MSE for SO2 predictions')
+PREDICTION_MSE_NO2 = Gauge('prediction_mse_no2', 'MSE for NO2 predictions')
+PREDICTION_MSE_PM10 = Gauge('prediction_mse_pm10', 'MSE for PM10 predictions')
+PREDICTION_MSE_PM2_5 = Gauge('prediction_mse_pm2_5', 'MSE for PM2.5 predictions')
+PREDICTION_MSE_O3 = Gauge('prediction_mse_o3', 'MSE for O3 predictions')
+PREDICTION_MSE_CO = Gauge('prediction_mse_co', 'MSE for CO predictions')
+
 # Start Prometheus metrics server (on port 8000)
 start_http_server(8000)
 
@@ -38,6 +47,7 @@ load_dotenv()
 
 # Environment variables
 VISUAL_CROSSING_API_KEY = os.getenv('VISUAL_CROSSING_API_KEY')
+OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 LATITUDE = os.getenv('LATITUDE')
 LONGITUDE = os.getenv('LONGITUDE')
 LOCATION = f"{LATITUDE},{LONGITUDE}"
@@ -106,6 +116,47 @@ def fetch_weather_data(start_date, end_date):
         print(f'Error fetching weather data: {e}')
         return None
 
+def fetch_actual_pollution_data():
+    """
+    Fetch actual air pollution data from the OpenWeatherMap API.
+    """
+    api_url = "http://api.openweathermap.org/data/2.5/air_pollution/forecast"
+    params = {
+        "lat": LATITUDE,
+        "lon": LONGITUDE,
+        "appid": OPENWEATHER_API_KEY
+    }
+
+    try:
+        response = requests.get(api_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        return data
+    except Exception as e:
+        print(f'Error fetching actual pollution data: {e}')
+        return None
+
+def extract_actual_pollutants(actual_data, target_timestamp):
+    """
+    Extract actual pollutant values for the target timestamp from the API data.
+    """
+    list_data = actual_data.get('list', [])
+    for entry in list_data:
+        entry_timestamp = datetime.utcfromtimestamp(entry['dt'])
+        if entry_timestamp == target_timestamp:
+            pollutants = {
+                'so2': entry['components'].get('so2', 0.0),
+                'no2': entry['components'].get('no2', 0.0),
+                'pm10': entry['components'].get('pm10', 0.0),
+                'pm2_5': entry['components'].get('pm2_5', 0.0),
+                'o3': entry['components'].get('o3', 0.0),
+                'co': entry['components'].get('co', 0.0)
+            }
+            return pollutants
+    print("Specified timestamp not found in actual data.")
+    return None
+
 def extract_past_24_hours(data, target_date, target_hour):
     """
     Extract the past 24 hours of data up to the target_date and target_hour.
@@ -144,6 +195,19 @@ def extract_past_24_hours(data, target_date, target_hour):
     past_24_hours = df.iloc[start_index:target_index + 1]
     
     return past_24_hours
+
+def calculate_mse(predicted_scaled, actual_scaled):
+    """
+    Calculate Mean Squared Error between predicted and actual pollutant values.
+    """
+    mse = {}
+    pollutants = ['so2', 'no2', 'pm10', 'pm2_5', 'o3', 'co']
+    
+    for i, pollutant in enumerate(pollutants):
+        mse_value = mean_squared_error([actual_scaled[0][i]], [predicted_scaled[0][i]])
+        mse[pollutant] = mse_value
+    
+    return mse
 
 def preprocess_data(past_24_hours):
     """
@@ -271,15 +335,73 @@ def index():
         # Determine AQI
         aqi_level = determine_aqi(pollutant_values)
         
+        # Fetch actual pollution data
+        actual_data = fetch_actual_pollution_data()
+        if actual_data is None:
+            return render_template('index.html', error="Error fetching actual pollution data for validation.", current_date=current_date)
+        
+        # Define the target timestamp
+        target_datetime_str = f"{target_date}T{target_hour:02d}:00:00"
+        target_timestamp = pd.to_datetime(target_datetime_str)
+        
+        # Extract actual pollutants
+        actual_pollutants = extract_actual_pollutants(actual_data, target_timestamp)
+        if actual_pollutants is None:
+            return render_template('index.html', error="Error extracting actual pollutants data for validation.", current_date=current_date)
+        
+        # Prepare actual pollutants for scaling
+        actual_values = [
+            actual_pollutants['so2'],
+            actual_pollutants['no2'],
+            actual_pollutants['pm10'],
+            actual_pollutants['pm2_5'],
+            actual_pollutants['o3'],
+            actual_pollutants['co']
+        ]
+
+        # Scale actual pollutants
+        y_actual_scaled = target_scaler.transform([actual_values])  # Shape: (1, 6)
+        
+        # Calculate MSE on scaled data
+        mse_values = calculate_mse(y_pred_scaled, y_actual_scaled)
+        # Round the MSE values
+        mse_values = {k: round(v, 3) for k, v in mse_values.items()}
+        
+        # Record MSE as Prometheus metrics
+        PREDICTION_MSE_SO2.set(mse_values.get('so2', 0))
+        PREDICTION_MSE_NO2.set(mse_values.get('no2', 0))
+        PREDICTION_MSE_PM10.set(mse_values.get('pm10', 0))
+        PREDICTION_MSE_PM2_5.set(mse_values.get('pm2_5', 0))
+        PREDICTION_MSE_O3.set(mse_values.get('o3', 0))
+        PREDICTION_MSE_CO.set(mse_values.get('co', 0))
+
+        # Inverse transform actual pollutants for display
+        try:
+            y_actual = target_scaler.inverse_transform(y_actual_scaled)
+        except Exception as e:
+            print(f"Error during inverse scaling of actual pollutants: {e}")
+            return render_template('index.html', error="Error processing actual pollution results.", current_date=current_date)
+        
+        # Prepare actual pollutant values after inverse scaling
+        actual_pollutants_display = {
+            'so2': round(y_actual[0][0], 2),
+            'no2': round(y_actual[0][1], 2),
+            'pm10': round(y_actual[0][2], 2),
+            'pm2_5': round(y_actual[0][3], 2),
+            'o3': round(y_actual[0][4], 2),
+            'co': round(y_actual[0][5], 2)
+        }
+
         return render_template(
             'index.html',
             pollutants=pollutant_values,
+            actual_pollutants=actual_pollutants_display,
+            mse=mse_values,
             aqi=aqi_level,
             current_date=current_date
         )
     
     return render_template('index.html', current_date=current_date)
-
 
 if __name__ == '__main__':
     if model is None:

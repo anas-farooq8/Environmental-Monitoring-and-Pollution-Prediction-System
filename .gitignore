@@ -13,3 +13,9 @@ __pycache__/
 
 # Environmental Data
 /data
+
+# Models
+/models
+
+# MLRuns
+/src/mlruns

@@ -1,0 +1,214 @@
+<!-- app/templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pollution Trend Prediction</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center mb-4">Pollution Trend Prediction</h1>
+
+      {% if error %}
+      <div class="alert alert-danger" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST">
+        <div class="mb-3">
+          <label for="date" class="form-label">Select Date</label>
+          <input
+            type="date"
+            class="form-control"
+            id="date"
+            name="date"
+            max="{{ current_date }}"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="hour" class="form-label">Select Hour</label>
+          <input
+            type="number"
+            class="form-control"
+            id="hour"
+            name="hour"
+            min="0"
+            max="23"
+            required
+          />
+          <div class="form-text">Enter hour in 24-hour format (0-23).</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Predict</button>
+      </form>
+
+      {% if pollutants %}
+      <hr />
+      <h3 class="mt-4">Predicted Pollutant Levels</h3>
+      <ul class="list-group mb-4">
+        {% for pollutant, value in pollutants.items() %}
+        <li class="list-group-item">
+          <strong>{{ pollutant.upper() }}:</strong> {{ value }} μg/m³
+        </li>
+        {% endfor %}
+      </ul>
+
+      <!-- Chart Section -->
+      <h3 class="mt-4">Pollutant Levels Visualization</h3>
+      <canvas id="pollutantChart" width="400" height="200"></canvas>
+
+      <h3 class="mt-4">Air Quality Index (AQI): {{ aqi }}</h3>
+
+      <h4 class="mt-5">AQI Classification</h4>
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Qualitative Name</th>
+            <th>Index</th>
+            <th>SO₂ (μg/m³)</th>
+            <th>NO₂ (μg/m³)</th>
+            <th>PM₁₀ (μg/m³)</th>
+            <th>PM₂.₅ (μg/m³)</th>
+            <th>O₃ (μg/m³)</th>
+            <th>CO (μg/m³)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Good</td>
+            <td>1</td>
+            <td>[0; 20)</td>
+            <td>[0; 40)</td>
+            <td>[0; 20)</td>
+            <td>[0; 10)</td>
+            <td>[0; 60)</td>
+            <td>[0; 4400)</td>
+          </tr>
+          <tr>
+            <td>Fair</td>
+            <td>2</td>
+            <td>[20; 80)</td>
+            <td>[40; 70)</td>
+            <td>[20; 50)</td>
+            <td>[10; 25)</td>
+            <td>[60; 100)</td>
+            <td>[4400; 9400)</td>
+          </tr>
+          <tr>
+            <td>Moderate</td>
+            <td>3</td>
+            <td>[80; 250)</td>
+            <td>[70; 150)</td>
+            <td>[50; 100)</td>
+            <td>[25; 50)</td>
+            <td>[100; 140)</td>
+            <td>[9400; 12400)</td>
+          </tr>
+          <tr>
+            <td>Poor</td>
+            <td>4</td>
+            <td>[250; 350)</td>
+            <td>[150; 200)</td>
+            <td>[100; 200)</td>
+            <td>[50; 75)</td>
+            <td>[140; 180)</td>
+            <td>[12400; 15400)</td>
+          </tr>
+          <tr>
+            <td>Very Poor</td>
+            <td>5</td>
+            <td>&ge;350</td>
+            <td>&ge;200</td>
+            <td>&ge;200</td>
+            <td>&ge;75</td>
+            <td>&ge;180</td>
+            <td>&ge;15400</td>
+          </tr>
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    <!-- Chart.js Script -->
+    {% if pollutants %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("pollutantChart").getContext("2d");
+        const pollutantData = {
+          labels: [
+            {% for pollutant in pollutants.keys() %}
+              "{{ pollutant.upper() }}",
+            {% endfor %}
+          ],
+          datasets: [
+            {
+              label: "Pollutant Concentration (μg/m³)",
+              data: [
+                {% for value in pollutants.values() %}
+                  {{ value }},
+                {% endfor %}
+              ],
+              backgroundColor: [
+                "rgba(54, 162, 235, 0.6)", // SO2
+                "rgba(255, 99, 132, 0.6)", // NO2
+                "rgba(255, 206, 86, 0.6)", // PM10
+                "rgba(75, 192, 192, 0.6)", // PM2.5
+                "rgba(153, 102, 255, 0.6)", // O3
+                "rgba(255, 159, 64, 0.6)", // CO
+              ],
+              borderColor: [
+                "rgba(54, 162, 235, 1)",
+                "rgba(255,99,132,1)",
+                "rgba(255, 206, 86, 1)",
+                "rgba(75, 192, 192, 1)",
+                "rgba(153, 102, 255, 1)",
+                "rgba(255, 159, 64, 1)",
+              ],
+              borderWidth: 1,
+            },
+          ],
+        };
+
+        const pollutantChart = new Chart(ctx, {
+          type: "bar",
+          data: pollutantData,
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+              title: {
+                display: true,
+                text: "Predicted Pollutant Concentrations",
+                font: {
+                  size: 18,
+                },
+              },
+            },
+          },
+        });
+      });
+    </script>
+    {% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

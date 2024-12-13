@@ -1,13 +1,35 @@
 from flask import Flask, render_template, request, jsonify
 import os
+import time
 import requests
-import json
 from dotenv import load_dotenv
 import pandas as pd
-import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
 from datetime import datetime
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
+# Define metrics
+REQUEST_COUNT = Counter("app_requests_total", "Total number of requests")
+PREDICTION_TIME = Histogram("prediction_time_seconds", "Time taken for predictions")
+
+# Define metrics for data ingestion
+DATA_INGESTION_COUNT = Counter('data_ingestion_total', 'Total number of data ingestion attempts')
+DATA_INGESTION_TIME = Histogram('data_ingestion_time_seconds', 'Time taken for data ingestion')
+DATA_INGESTION_VOLUME = Gauge('data_ingestion_volume_bytes', 'Size of data ingested in bytes')
+DATA_INGESTION_LAST_SUCCESSFUL = Gauge('data_ingestion_last_successful_timestamp', 'Timestamp of the last successful data ingestion')
+DATA_INGESTION_ERROR = Counter('data_ingestion_error_total', 'Total number of data ingestion errors')
+
+# New metrics for target variables
+PREDICTION_VALUE_SO2 = Gauge('prediction_value_so2', 'Predicted value for SO2')
+PREDICTION_VALUE_NO2 = Gauge('prediction_value_no2', 'Predicted value for NO2')
+PREDICTION_VALUE_PM10 = Gauge('prediction_value_pm10', 'Predicted value for PM10')
+PREDICTION_VALUE_PM2_5 = Gauge('prediction_value_pm2_5', 'Predicted value for PM2.5')
+PREDICTION_VALUE_O3 = Gauge('prediction_value_o3', 'Predicted value for O3')
+PREDICTION_VALUE_CO = Gauge('prediction_value_co', 'Predicted value for CO')
+
+# Start Prometheus metrics server (on port 8000)
+start_http_server(8000)
 
 app = Flask(__name__)
 
@@ -57,15 +79,30 @@ except Exception as e:
 def fetch_weather_data(start_date, end_date):
     """
     Fetch historical weather data between start_date and end_date.
-    Dates should be in 'YYYY-MM-DD' format.
     """
+    DATA_INGESTION_COUNT.inc()  # Increment data ingestion attempts
+    start_time = time.time()     # Start timing data ingestion
+
     url = f'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{LOCATION}/{start_date}/{end_date}?unitGroup=metric&key={VISUAL_CROSSING_API_KEY}&include=hours&elements=datetime,temp,dew,humidity,windspeed,windgust,winddir,pressure,solarenergy,cloudcover,solarradiation,uvindex'
+
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
+
+        ingestion_time = time.time() - start_time  # Time taken for data ingestion
+        DATA_INGESTION_TIME.observe(ingestion_time)  # Record ingestion time
+
+        # Calculate data volume
+        data_volume = len(response.content)  # Size in bytes
+        DATA_INGESTION_VOLUME.set(data_volume)  # Record data volume
+
+        # Record the timestamp of successful ingestion
+        DATA_INGESTION_LAST_SUCCESSFUL.set(time.time())
+
         return data
     except Exception as e:
+        DATA_INGESTION_ERROR.inc()  # Increment error count
         print(f'Error fetching weather data: {e}')
         return None
 
@@ -155,6 +192,7 @@ def determine_aqi(pollutant_values):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     current_date = datetime.today().strftime('%Y-%m-%d')
+    
     if request.method == 'POST':
         target_date = request.form.get('date')
         target_hour = request.form.get('hour')
@@ -175,12 +213,6 @@ def index():
         if not (0 <= target_hour <= 23):
             return render_template('index.html', error="Hour must be between 0 and 23.", current_date=current_date)
         
-        # Ensure the requested datetime is not in the future
-        #now = pd.Timestamp.now()
-        #target_datetime = prediction_datetime.replace(hour=target_hour)
-        #if target_datetime > now:
-        #    return render_template('index.html', error="Requested datetime is in the future.", current_date=current_date)
-        
         # Fetch weather data for the target date and the previous date
         end_date = target_date
         start_date = (prediction_datetime - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
@@ -199,6 +231,9 @@ def index():
         if X_scaled is None:
             return render_template('index.html', error="Error preprocessing data.", current_date=current_date)
         
+        # Start time before making the prediction
+        start_time = time.time()  # Track the time when prediction starts
+        
         # Make prediction
         try:
             y_pred_scaled = model.predict(X_scaled)
@@ -213,10 +248,25 @@ def index():
             print(f"Error during inverse scaling: {e}")
             return render_template('index.html', error="Error processing prediction results.", current_date=current_date)
         
+        # Track the prediction time
+        prediction_time = time.time() - start_time  # Calculate time taken for prediction
+        PREDICTION_TIME.observe(prediction_time)  # Log this time in the histogram
+
+        # Increment api call count
+        REQUEST_COUNT.inc()
+        
         # Prepare pollutant values
         pollutant_values = {
             TARGETS[i].split('.')[1]: round(y_pred[0][i], 2) for i in range(len(TARGETS))
         }
+
+        # Record prediction values
+        PREDICTION_VALUE_SO2.set(pollutant_values['so2'])
+        PREDICTION_VALUE_NO2.set(pollutant_values['no2'])
+        PREDICTION_VALUE_PM10.set(pollutant_values['pm10'])
+        PREDICTION_VALUE_PM2_5.set(pollutant_values['pm2_5'])
+        PREDICTION_VALUE_O3.set(pollutant_values['o3'])
+        PREDICTION_VALUE_CO.set(pollutant_values['co'])
         
         # Determine AQI
         aqi_level = determine_aqi(pollutant_values)
@@ -230,8 +280,9 @@ def index():
     
     return render_template('index.html', current_date=current_date)
 
+
 if __name__ == '__main__':
     if model is None:
         print("Model is not loaded. Please check the model path.")
     else:
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

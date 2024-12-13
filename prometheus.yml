@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s # Scrape metrics every 15 seconds
+
+scrape_configs:
+  - job_name: "flask-api"
+    metrics_path: "/metrics" # Endpoint where metrics are exposed
+    static_configs:
+      - targets: ["flask-api:8000"] # Target to scrape metrics from

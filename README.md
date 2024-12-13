@@ -95,3 +95,35 @@ Authentication: If prompted, enter the password for the user account under which
 - docker ps
 - docker logs -f pollution-app
 - docker stop pollution-app
+
+### Step 9: Monitoring and Live Testing
+
+- Grafana:
+  Grafana is an open-source visualization and monitoring tool.
+  It provides interactive dashboards for visualizing metrics, logs, and alerts collected from various data sources.
+  We will use it for Application-specific metrics (API response times, errors, etc.).
+
+- Prometheus:
+  Prometheus is an open-source monitoring and alerting toolkit.
+  It collects and stores metrics as time-series data (numerical data over time).
+
+- Relationship Between Grafana, Prometheus, and Docker
+  Prometheus collects metrics from applications running in Docker containers.
+  Grafana visualizes those metrics by connecting to Prometheus as a data source.
+  Using Docker, you can containerize Grafana, Prometheus, and your application for a streamlined and consistent deployment.
+
+* Start Prometheus
+
+- docker-compose up -d
+- http://localhost:9090
+
+* Flow of Metrics with Prometheus:
+  We define metrics in app (like REQUEST_COUNT, PREDICTION_TIME, DATA_INGESTION_TIME).
+  Prometheus scrapes these metrics from your app's /metrics endpoint. This scraping happens at intervals you configure in Prometheus.
+  Prometheus stores these metrics and makes them available for querying.
+  Grafana visualizes these metrics using dashboards.
+
+- docker-compose up --build -d
+- docker-compose down
+- http://localhost:9090
+- http://localhost:3000

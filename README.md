@@ -80,3 +80,7 @@ Click OK.
 Authentication: If prompted, enter the password for the user account under which the task will run.
 
 ### Step 5: Script Writing for Model Training & Setting up ML-Flow
+
+### Step 6: Deploying an API
+
+### Step 7: Building Flask App

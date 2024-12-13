@@ -22,7 +22,7 @@ LOCATION = f"{LATITUDE},{LONGITUDE}"
 # Model and scaler paths
 FEATURE_SCALER_PATH = "../models/feature_scaler.joblib"
 TARGET_SCALER_PATH = "../models/target_scaler.joblib"
-MODEL_PATH = "../models/model.keras"  # Path to your locally saved model
+MODEL_PATH = "../models/model.keras"
 
 # AQI Classification Ranges
 AQI_RANGES = [

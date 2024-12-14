@@ -2,128 +2,213 @@
 
 # fall24_mlops_project
 
-### Step 1: Setup a Virtual Environment
+## Table of Contents
 
-Create virtual environment using
-`python -m venv .venv`
+- [Overview](#overview)
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+- [Data Collection](#data-collection)
+  - [Air Quality Data](#air-quality-data)
+  - [Weather Data](#weather-data)
+- [DVC Integration](#dvc-integration)
+  - [Initializing DVC](#initializing-dvc)
+  - [Remote Storage Configuration](#remote-storage-configuration)
+  - [Data Versioning](#data-versioning)
+- [Automation](#automation)
+  - [PowerShell Script](#powershell-script)
+  - [Scheduling with Task Scheduler](#scheduling-with-task-scheduler)
+- [Manual Usage](#usage)
+- [Acknowledgments](#acknowledgments)
 
-Source this environment
-`Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process`
-`.\.venv\Scripts\Activate.ps1`
+## Overview
 
-Install all the dependencies
-`pip install -r requirements.txt`
+The **Environmental Data Management with DVC** project aims to efficiently collect, version, and manage real-time environmental data streams using [Data Version Control (DVC)](https://dvc.org/). By integrating live data streams from reputable APIs, this project ensures that environmental data such as weather conditions and air quality metrics are consistently tracked and accessible for analysis and prediction models.
 
-Verify the Install Packages
-`pip freeze`
+## Features
 
-### Step 2: Initialize DVC in the Repository
+- **Real-Time Data Collection**: Fetches current, forecasted, and historical air quality and weather data.
+- **Data Versioning with DVC**: Ensures reproducibility and trackability of data changes over time.
+- **Remote Storage Integration**: Utilizes Google Drive for storing large data files.
+- **Automated Data Fetching**: Scheduled scripts to regularly update data repositories.
+- **Comprehensive Documentation**: Detailed guides for setup, usage, and contribution.
 
-`dvc init`
-`dvc list --dvc-only .`
-`dvc remote add -d gdrive_remote gdrive://<folder_id>`
-`dvc remote modify gdrive_remote gdrive_use_service_account true`
-`dvc remote modify gdrive_remote gdrive_service_account_json_file_path "D:/Semester 7/ML-Ops/course-project-anas-farooq8/dvc-key.json"`
-`dvc remote default gdrive_remote`
-`dvc repro`
-`dvc push`
+## Technologies Used
 
-### Step 3: Create the PowerShell Script
+- **Python**: Primary programming language for data collection scripts.
+- **DVC (Data Version Control)**: For data versioning and management.
+- **Git**: Version control system.
+- **Visual Crossing Weather API**: Source for weather data.
+- **OpenWeatherMap Air Pollution API**: Source for air quality data.
+- **PowerShell**: Scripting for automation on Windows.
+- **Task Scheduler (Windows)**: Scheduling automated tasks.
+- **Google Drive**: Remote storage for DVC.
+- **Dotenv**: Managing environment variables.
 
-`New-Item -Path . -Name "collect_and_push.ps1" -ItemType "File" -Force`
-`.\collect_and_push.ps1`
+## Getting Started
 
-### Step 4: Schedule the Script with Task Scheduler (Windows)
+### Prerequisites
 
-1. Open Task Scheduler:
+- **Python 3.8+**: Ensure Python is installed on your system.
+- **Git**: Version control system.
+- **DVC**: Install DVC for data management.
+- **Google Drive Account**: For remote storage.
+- **API Keys**:
+  - [OpenWeatherMap API Key](https://openweathermap.org/api/air-pollution)
+  - [Visual Crossing Weather API Key](https://www.visualcrossing.com/resources/documentation/weather-api/timeline-weather-api/)
 
-- Press Win + R, type taskschd.msc, and press Enter.
+### Installation
 
-2. Create a New Task:
+1. **Set Up a Virtual Environment**
 
-- Action: Click on Action > Create Task....
-  Name: Enter a descriptive name, e.g., Environmental Data Collection and Push.
-  Description: (Optional) Automates data collection and versioning using DVC every hour.
-  Security Options:
-  User Account: Choose an account with the necessary permissions.
-  Run whether user is logged on or not: Select this to ensure the task runs in the background.
-  Run with highest privileges: Check this if required by your scripts.
+   ```bash
+   python -m venv .venv
+   ```
 
-3. Set Triggers:
+2. **Activate the Virtual Environment**
 
-- Navigate to the "Triggers" Tab:
-  Click New....
-  Begin the task: On a schedule.
-  Settings: Select Daily.
-  Start: Set the date and time you want the scheduling to begin.
-  Advanced Settings:
-  Repeat task every: 1 hour.
-  For a duration of: Indefinitely.
-  Enabled: Ensure this is checked.
-  Click OK.
+   **Windows:**
 
-4. Set Actions:
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
 
-Navigate to the "Actions" Tab:
-Click New....
+   **Unix/Linux:**
 
-Action: Start a program.
+   ```bash
+   source .venv/bin/activate
+   ```
 
-Program/script: powershell.exe
+3. **Install Dependencies**
 
-Add arguments:
--File "D:\Semester 7\ML-Ops\course-project-anas-farooq8\scripts\collect_and_push.ps1"
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-5. Finalize the Task:
+## Configuration
 
-Click OK.
-Authentication: If prompted, enter the password for the user account under which the task will run.
+### Environment Variables
 
-### Step 5: Script Writing for Model Training & Setting up ML-Flow
+Create a `.env` file in the root directory and add the following:
 
-### Step 6: Deploying an API
+```env
+OPENWEATHER_API_KEY=your_openweather_api_key
+VISUAL_CROSSING_API_KEY=your_visual_crossing_api_key
+LATITUDE=your_latitude
+LONGITUDE=your_longitude
+```
 
-### Step 7: Building Flask App
+Replace `your_openweather_api_key`, `your_visual_crossing_api_key`, `your_latitude`, and `your_longitude` with your actual API keys and coordinates.
 
-### Step 8: Dockerizing the App
+### DVC Remote Storage Setup
 
-- docker build -t pollution-prediction-app .
-- ```bash
-  docker run -d -p 5000:5000 --env-file .env --name pollution-app pollution-prediction-app
-  ```
+Ensure you have a `dvc-key.json` file for Google Drive service account authentication and place it in the project directory.
 
-- docker ps
-- docker logs -f pollution-app
-- docker stop pollution-app
+## Data Collection
 
-### Step 9: Monitoring and Live Testing
+### Air Quality Data
 
-- Grafana:
-  Grafana is an open-source visualization and monitoring tool.
-  It provides interactive dashboards for visualizing metrics, logs, and alerts collected from various data sources.
-  We will use it for Application-specific metrics (API response times, errors, etc.).
+- **Script**: `scripts/air_collector.py`
+- **Description**: Fetches current, forecasted, and historical air quality data from OpenWeatherMap API.
 
-- Prometheus:
-  Prometheus is an open-source monitoring and alerting toolkit.
-  It collects and stores metrics as time-series data (numerical data over time).
+### Weather Data
 
-- Relationship Between Grafana, Prometheus, and Docker
-  Prometheus collects metrics from applications running in Docker containers.
-  Grafana visualizes those metrics by connecting to Prometheus as a data source.
-  Using Docker, you can containerize Grafana, Prometheus, and your application for a streamlined and consistent deployment.
+- **Script**: `scripts/weather_collector.py`
+- **Description**: Fetches current, forecasted, and historical weather data from Visual Crossing Weather API.
 
-* Start Prometheus
+## DVC Integration
 
-- docker-compose up -d
-- http://localhost:9090
+### Initializing DVC
 
-* Flow of Metrics with Prometheus:
-  We define metrics in app (like REQUEST_COUNT, PREDICTION_TIME, DATA_INGESTION_TIME).
-  Prometheus scrapes these metrics from your app's /metrics endpoint. This scraping happens at intervals you configure in Prometheus.
-  Prometheus stores these metrics and makes them available for querying.
-  Grafana visualizes these metrics using dashboards.
+```bash
+dvc init
+```
 
-- docker-compose up --build -d
-- docker-compose down
-- http://localhost:9090
-- http://localhost:3000
+### Remote Storage Configuration
+
+1. **Add Remote Storage**
+   ```bash
+   dvc remote add -d gdrive_remote gdrive://<folder_id>
+   ```
+2. **Modify Remote for Service Account**
+   ```bash
+   dvc remote modify gdrive_remote gdrive_use_service_account true
+   dvc remote modify gdrive_remote gdrive_service_account_json_file_path "path/to/dvc-key.json"
+   dvc remote default gdrive_remote
+   ```
+
+### Data Versioning
+
+#### Create `dvc.yaml`
+
+```yaml
+stages:
+  air_quality:
+    cmd: python scripts/air_collector.py
+    outs:
+      - data/air_quality/current/air_quality_current.json
+      - data/air_quality/forecast/air_quality_forecast.json
+      - data/air_quality/historical/air_quality_historical.json
+  weather:
+    cmd: python scripts/weather_collector.py
+    outs:
+      - data/weather/current/weather_current.json
+      - data/weather/forecast/weather_forecast.json
+      - data/weather/historical/weather_historical.json
+```
+
+#### Commit Changes
+
+```bash
+git add .
+git commit -m "Initialize DVC and add data collection stages"
+```
+
+## Automation
+
+### PowerShell Script
+
+- **Script**: `collect_and_push.ps1`
+- **Description**: Automates data fetching, DVC pipeline execution, and pushing changes to remote storage and Git repository.
+
+### Scheduling with Task Scheduler (Windows)
+
+1. **Open Task Scheduler**
+2. **Create a New Task**
+   - **Name**: Environmental Data Collection
+   - **Trigger**: Set the desired schedule (e.g., daily at midnight).
+   - **Action**:
+     - **Program/script**: `powershell.exe`
+     - **Add arguments**: `-ExecutionPolicy Bypass -File "path\to\collect_and_push.ps1"`
+3. **Save the Task**
+
+## Manual Usage
+
+### Run Data Collection Manually
+
+```bash
+python scripts/air_collector.py
+python scripts/weather_collector.py
+```
+
+### Run DVC Pipeline
+
+```bash
+dvc repro
+```
+
+### Push Data to Remote Storage
+
+```bash
+dvc push
+git push
+```
+
+## Acknowledgments
+
+- [DVC Documentation](https://dvc.org/doc)
+- [OpenWeatherMap API](https://openweathermap.org/api/air-pollution)
+- [Visual Crossing Weather API](https://www.visualcrossing.com/weather-api)

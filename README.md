@@ -29,6 +29,7 @@
   - [Hyperparameter Tuning](#hyperparameter-tuning)
   - [Model Evaluation](#model-evaluation)
 - [Deployment](#deployment)
+- [Monitoring](#monitoring)
 
 - [Acknowledgments](#acknowledgments)
 
@@ -48,6 +49,7 @@ Then developing machine learning models to predict pollution trends and alert hi
 - **MLflow Integration**: Tracks experiments, logs metrics, and manages model versions.
 - **Hyperparameter Tuning**: Optimizes model performance using grid search techniques.
 - **Model Deployment**: Deploys the best-performing model as an API for real-time predictions.
+- **Monitoring**: Integrates Prometheus for monitoring API requests and data ingestion processes.
 - **Visualization**: Generates correlation heatmaps and prediction vs. actual plots.
 
 ## Technologies Used
@@ -67,6 +69,7 @@ Then developing machine learning models to predict pollution trends and alert hi
 - **MLflow**: Experiment tracking and model management.
 - **Flask**: Deploying the prediction API.
 - **Matplotlib & Seaborn**: Data visualization.
+- **Prometheus**: Monitoring application metrics.
 
 ## Getting Started
 
@@ -129,6 +132,17 @@ Ensure MLflow is installed and accessible. Start an MLflow server:
 
 ```bash
 mlflow ui
+```
+
+#### Prometheus Setup
+
+Install and configure Prometheus to scrape metrics from the Flask application. Add the following job to your `prometheus.yml` configuration file:
+
+```bash
+scrape_configs:
+  - job_name: 'flask_app'
+    static_configs:
+      - targets: ['localhost:8000']
 ```
 
 ### DVC Remote Storage Setup
@@ -302,20 +316,123 @@ Utilized grid search to explore combinations of hyperparameters:
 
 ## Deployment
 
-The best-performing model is deployed as an API using Flask, enabling real-time pollution trend predictions.
+Deploying the best-performing model as an API ensures real-time accessibility for predictions. This section outlines the steps to set up the Flask API, integrate MLflow, incorporate Prometheus for monitoring, and run the application.
 
-### API Features
+### Flask API Setup
 
-- **Endpoint**: `/predict`
-- **Input**: JSON payload with current weather metrics.
-- **Output**: Predicted pollutant concentrations.
+The Flask application serves as the interface for making real-time pollution predictions based on input weather data. It integrates MLflow for model management and Prometheus for monitoring.
 
-### Deployment Steps
+Key Components:
 
-1. **Load Trained Model**: Retrieved from MLflow's Model Registry.
-2. **Set Up Flask Server**: Created endpoints to handle prediction requests.
-3. **Model Inference**: Processes input data, applies scaling, and generates predictions.
-4. **Response**: Returns predictions in JSON format.
+- Endpoints:
+  - **/:** Main page with a form to input date and hour for prediction.
+  - **/predict**: Processes prediction requests and returns results.
+- **Data Ingestion**: Fetches historical weather data and actual pollution data for validation.
+- **Model Inference**: Utilizes the trained LSTM model to make predictions.
+- **AQI Determination**: Categorizes pollution levels into AQI ratings.
+- **Prometheus Metrics**: Tracks API requests, prediction times, data ingestion metrics, and prediction accuracy.
+
+### Integrating MLflow
+
+The Flask app leverages MLflow's Model Registry to load and manage the best-performing model.
+
+Steps:
+
+1. **Load Scalers and Model**:
+
+- Feature Scaler: Standardizes input features.
+- Target Scaler: Standardizes target pollutant concentrations.
+- Model: Loaded from the MLflow Model Registry.
+
+2. **Model Loading Code Snippet**:
+
+```bash
+# Load the scalers
+if not os.path.exists(FEATURE_SCALER_PATH) or not os.path.exists(TARGET_SCALER_PATH):
+    raise FileNotFoundError("Scaler files not found. Ensure they are present in the 'models' directory.")
+
+feature_scaler = joblib.load(FEATURE_SCALER_PATH)
+target_scaler = joblib.load(TARGET_SCALER_PATH)
+
+# Load the local model
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError("Model directory not found. Ensure the model is saved in the 'MLModel' directory.")
+
+try:
+    model = load_model(MODEL_PATH)
+except Exception as e:
+    print(f"Error loading model from {MODEL_PATH}: {e}")
+    model = None
+```
+
+### Prometheus Metrics Integration
+
+Prometheus is integrated to monitor various aspects of the application, including API requests, prediction times, data ingestion processes, and prediction accuracy.
+
+Metrics Defined:
+
+- **API Metrics**:
+
+  - app_requests_total: Total number of API requests.
+  - prediction_time_seconds: Time taken to process predictions.
+
+- **Data Ingestion Metrics**:
+
+  - data_ingestion_total: Total number of data ingestion attempts.
+  - data_ingestion_time_seconds: Time taken for data ingestion.
+  - data_ingestion_volume_bytes: Size of data ingested in bytes.
+  - data_ingestion_last_successful_timestamp: Timestamp of the last successful data ingestion.
+  - data_ingestion_error_total: Total number of data ingestion errors.
+
+- **Prediction Metrics**:
+
+  - prediction*value*<pollutant>: Predicted values for each pollutant.
+  - prediction*mse*<pollutant>: Mean Squared Error for predictions of each pollutant.
+
+Prometheus Server Setup:
+
+1. **Configuration**: Ensure the Flask app's metrics endpoint is accessible to Prometheus by adding a scrape target in the `prometheus.yml` file.
+
+```bash
+scrape_configs:
+  - job_name: 'flask_app'
+    static_configs:
+      - targets: ['localhost:8000']
+```
+
+2. **Start Prometheus**: Launch Prometheus with the updated configuration.
+
+```bash
+prometheus --config.file=prometheus.yml
+```
+
+## Monitoring
+
+Monitoring is essential to ensure the reliability and performance of the data collection and model deployment processes.
+
+- **MLflow UI**: Monitors experiment runs, metrics, and model versions.
+- **Prometheus Metrics**: Tracks API requests, prediction times, data ingestion metrics, and prediction accuracy.
+- **Visualization Tools**: Using Grafana to visualize Prometheus metrics for better insights.
+
+### Sample Prometheus Metrics:
+
+- **API Metrics**:
+
+  - app_requests_total: Indicates the total number of prediction requests made to the API.
+  - prediction_time_seconds: Measures the time taken to process each prediction request.
+
+- **Data Ingestion Metrics**:
+
+  - data_ingestion_total: Tracks the number of data ingestion attempts.
+  - data_ingestion_time_seconds: Logs the duration of each data ingestion process.
+  - data_ingestion_volume_bytes: Monitors the size of data ingested.
+  - data_ingestion_last_successful_timestamp: Records the timestamp of the last successful data ingestion.
+  - data_ingestion_error_total: Counts the number of errors encountered during data ingestion.
+
+- **Prediction Metrics**:
+
+  - prediction_value_so2, prediction_value_no2, etc.: Gauge the predicted pollutant concentrations.
+  - prediction_mse_so2, prediction_mse_no2, etc.: Gauge the Mean Squared Error for each pollutant's predictions.
 
 ## Acknowledgments
 

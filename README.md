@@ -8,7 +8,6 @@
 - [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
 - [Data Collection](#data-collection)
@@ -29,7 +28,16 @@
   - [Hyperparameter Tuning](#hyperparameter-tuning)
   - [Model Evaluation](#model-evaluation)
 - [Deployment](#deployment)
+  - [Flask API Setup](#flask-api-setup)
+  - [Integrating MLflow](#integrating-mlflow)
+  - [Prometheus and Grafana Integration](#prometheus-and-grafana-integration)
+  - [Grafana Dashboards](#grafana-dashboards)
+  - [Docker Compose Setup](#docker-compose-setup)
+  - [Docker Compose Commands](#docker-compose-commands)
 - [Monitoring](#monitoring)
+
+  - [Prometheus Metrics](#prometheus-metrics)
+  - [Grafana Dashboards](#grafana-dashboards)
 
 - [Acknowledgments](#acknowledgments)
 
@@ -126,7 +134,7 @@ LONGITUDE=your_longitude
 
 Replace `your_openweather_api_key`, `your_visual_crossing_api_key`, `your_latitude`, and `your_longitude` with your actual API keys and coordinates.
 
-#### MLflow Setup
+### MLflow Setup
 
 Ensure MLflow is installed and accessible. Start an MLflow server:
 
@@ -134,7 +142,7 @@ Ensure MLflow is installed and accessible. Start an MLflow server:
 mlflow ui
 ```
 
-#### Prometheus Setup
+### Prometheus Setup
 
 Install and configure Prometheus to scrape metrics from the Flask application. Add the following job to your `prometheus.yml` configuration file:
 
@@ -365,11 +373,11 @@ except Exception as e:
     model = None
 ```
 
-### Prometheus Metrics Integration
+### Prometheus and Grafana Integration
 
-Prometheus is integrated to monitor various aspects of the application, including API requests, prediction times, data ingestion processes, and prediction accuracy.
+Prometheus and Grafana are integrated to monitor various aspects of the application, including API requests, prediction times, data ingestion processes, and prediction accuracy.
 
-Metrics Defined:
+Prometheus Metrics Defined:
 
 - **API Metrics**:
 
@@ -389,21 +397,102 @@ Metrics Defined:
   - prediction*value*<pollutant>: Predicted values for each pollutant.
   - prediction*mse*<pollutant>: Mean Squared Error for predictions of each pollutant.
 
-Prometheus Server Setup:
+### Grafana Dashboards:
 
-1. **Configuration**: Ensure the Flask app's metrics endpoint is accessible to Prometheus by adding a scrape target in the `prometheus.yml` file.
+Grafana is configured to connect to Prometheus as a data source. Dashboards are created to visualize the defined metrics, providing real-time insights into the application's performance and health.
+
+### Docker Compose Setup
+
+To streamline the deployment process, Docker Compose is used to orchestrate the Flask API, Prometheus, and Grafana services.
+
+Docker Compose Configuration:
 
 ```bash
-scrape_configs:
-  - job_name: 'flask_app'
-    static_configs:
-      - targets: ['localhost:8000']
+services:
+  flask-api:
+    build:
+      context: . # Build using the Dockerfile in the current directory
+    container_name: flask-api
+    ports:
+      - "5000:5000" # Exposes Flask app on port 5000
+      - "8000:8000" # Exposes Prometheus metrics endpoint on port 8000
+    env_file:
+      - .env # Passes the .env file to the container
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus # Ensures Prometheus starts before Flask app
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Mounts Prometheus config
+    ports:
+      - "9090:9090" # Exposes Prometheus on port 9090
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml" # Specifies config file
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Sets Grafana admin password
+    ports:
+      - "3000:3000" # Exposes Grafana on port 3000
+    volumes:
+      - grafana-storage:/var/lib/grafana # Persists Grafana data
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus # Ensures Prometheus starts before Grafana
+
+volumes:
+  grafana-storage: # Defines a named volume for Grafana data
+
+networks:
+  monitoring:
+    driver: bridge
 ```
 
-2. **Start Prometheus**: Launch Prometheus with the updated configuration.
+Explanation of Services:
+
+- **flask-api**:
+
+  - Build Context: Uses the current directory's Dockerfile.
+  - Ports: Exposes the Flask application on port 5000 and Prometheus metrics on port 8000.
+  - Environment Variables: Loads variables from the .env file.
+  - Dependencies: Waits for Prometheus to start before launching.
+
+- **prometheus**:
+
+  - Image: Uses the official Prometheus image.
+  - Configuration: Mounts a custom prometheus.yml for scraping metrics.
+  - Ports: Accessible on port 9090.
+
+- **grafana**:
+
+  - Image: Uses the official Grafana image.
+  - Configuration: Sets the admin password and persists data using Docker volumes.
+  - Ports: Accessible on port 3000.
+  - Dependencies: Waits for Prometheus to start before launching.
+
+### Docker Compose Commands:
+
+- Start Services
 
 ```bash
-prometheus --config.file=prometheus.yml
+docker-compose up -d
+```
+
+- Stop Services
+
+```bash
+docker-compose down
 ```
 
 ## Monitoring
@@ -414,7 +503,7 @@ Monitoring is essential to ensure the reliability and performance of the data co
 - **Prometheus Metrics**: Tracks API requests, prediction times, data ingestion metrics, and prediction accuracy.
 - **Visualization Tools**: Using Grafana to visualize Prometheus metrics for better insights.
 
-### Sample Prometheus Metrics:
+### Prometheus Metrics:
 
 - **API Metrics**:
 
@@ -433,6 +522,29 @@ Monitoring is essential to ensure the reliability and performance of the data co
 
   - prediction_value_so2, prediction_value_no2, etc.: Gauge the predicted pollutant concentrations.
   - prediction_mse_so2, prediction_mse_no2, etc.: Gauge the Mean Squared Error for each pollutant's predictions.
+
+### Grafana Dashboards
+
+Grafana visualizes the metrics collected by Prometheus, providing real-time insights into the application's performance and health.
+
+Setting Up Dashboards:
+
+1. **Create a New Dashboard**:
+
+- Click on Create > Dashboard.
+- Add new panels for each metric you wish to visualize.
+
+2. **Sample Panels**:
+
+- API Requests Total: Visualize app_requests_total over time.
+- Prediction Time: Monitor prediction_time_seconds to assess response times.
+- Data Ingestion Volume: Track data_ingestion_volume_bytes to understand data flow.
+- Pollutant Predictions: Display gauges for prediction_value_so2, prediction_value_no2, etc.
+- Prediction Accuracy: Plot prediction_mse_so2, prediction_mse_no2, etc., to monitor model performance.
+
+3. **Alerts**:
+
+- Configure alerts for critical metrics, such as unusually high prediction times or data ingestion errors.
 
 ## Acknowledgments
 

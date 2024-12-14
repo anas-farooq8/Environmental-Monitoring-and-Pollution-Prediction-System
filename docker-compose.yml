@@ -1,0 +1,49 @@
+services:
+  flask-api:
+    build:
+      context: . # Build using the Dockerfile in the current directory
+    container_name: flask-api
+    ports:
+      - "5000:5000" # Exposes Flask app on port 5000
+      - "8000:8000" # Exposes Prometheus metrics endpoint on port 8000
+    env_file:
+      - .env # Passes the .env file to the container
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus # Ensures Prometheus starts before Flask app
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Mounts Prometheus config
+    ports:
+      - "9090:9090" # Exposes Prometheus on port 9090
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml" # Specifies config file
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Sets Grafana admin password
+    ports:
+      - "3000:3000" # Exposes Grafana on port 3000
+    volumes:
+      - grafana-storage:/var/lib/grafana # Persists Grafana data
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus # Ensures Prometheus starts before Grafana
+
+volumes:
+  grafana-storage: # Defines a named volume for Grafana data
+
+networks:
+  monitoring:
+    driver: bridge

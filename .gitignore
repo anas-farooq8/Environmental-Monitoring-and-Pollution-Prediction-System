@@ -1,0 +1,23 @@
+# Python cache
+/app/__pycache__/
+/app/*.pyc
+/app/*.pyo
+/app/*.pyd
+
+# Virtual environment
+/.venv
+
+# Gdrive connection key
+/dvc-key.json
+
+# Environment variables
+/.env
+
+# Environmental Data
+/data
+
+# Models
+/models
+
+# MLRuns
+/src/mlruns

@@ -1,0 +1,6 @@
+[core]
+    remote = gdrive_remote
+['remote "gdrive_remote"']
+    url = gdrive://1ieauVG4DTSZJIzXoVk4CkX6T9iaKk78j
+    gdrive_use_service_account = true
+    gdrive_service_account_json_file_path = D:/Semester 7/ML-Ops/course-project-anas-farooq8/dvc-key.json

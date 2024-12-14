@@ -1,0 +1,16 @@
+# Exclude the .env file to prevent it from being copied
+.env
+
+# Exclude Python cache files
+/app/__pycache__/
+/app/*.pyc
+/app/*.pyo
+/app/*.pyd
+
+# Exclude Git files
+.git
+.gitignore
+
+# Exclude Docker files
+Dockerfile
+docker-compose.yml

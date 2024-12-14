@@ -1,0 +1,13 @@
+stages:
+  air_quality:
+    cmd: python scripts/air_collector.py
+    outs:
+      - data/air_quality/current/air_quality_current.json
+      - data/air_quality/forecast/air_quality_forecast.json
+      - data/air_quality/historical/air_quality_historical.json
+  weather:
+    cmd: python scripts/weather_collector.py
+    outs:
+      - data/weather/current/weather_current.json
+      - data/weather/forecast/weather_forecast.json
+      - data/weather/historical/weather_historical.json

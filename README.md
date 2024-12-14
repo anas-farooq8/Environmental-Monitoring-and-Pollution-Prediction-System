@@ -22,11 +22,20 @@
   - [PowerShell Script](#powershell-script)
   - [Scheduling with Task Scheduler](#scheduling-with-task-scheduler)
 - [Manual Usage](#usage)
+- [Data Preparation](#data-preparation)
+- [Model Development](#model-development)
+- [MLflow Integration](#mlflow-integration)
+  - [Experiment Tracking](#experiment-tracking)
+  - [Hyperparameter Tuning](#hyperparameter-tuning)
+  - [Model Evaluation](#model-evaluation)
+- [Deployment](#deployment)
+
 - [Acknowledgments](#acknowledgments)
 
 ## Overview
 
-The **Environmental Data Management with DVC** project aims to efficiently collect, version, and manage real-time environmental data streams using [Data Version Control (DVC)](https://dvc.org/). By integrating live data streams from reputable APIs, this project ensures that environmental data such as weather conditions and air quality metrics are consistently tracked and accessible for analysis and prediction models.
+The project aims to efficiently collect, version, and manage real-time environmental data streams using [Data Version Control (DVC)](https://dvc.org/). By integrating live data streams from reputable APIs, this project ensures that environmental data such as weather conditions and air quality metrics are consistently tracked and accessible for analysis and prediction models.
+Then developing machine learning models to predict pollution trends and alert high-risk days. By leveraging time-series models and integrating MLflow for experiment tracking, this project ensures robust model development, evaluation, and deployment processes.
 
 ## Features
 
@@ -34,7 +43,12 @@ The **Environmental Data Management with DVC** project aims to efficiently colle
 - **Data Versioning with DVC**: Ensures reproducibility and trackability of data changes over time.
 - **Remote Storage Integration**: Utilizes Google Drive for storing large data files.
 - **Automated Data Fetching**: Scheduled scripts to regularly update data repositories.
-- **Comprehensive Documentation**: Detailed guides for setup, usage, and contribution.
+- **Data Preprocessing**: Cleans and prepares environmental data for modeling.
+- **Time-Series Modeling**: Utilizes LSTM networks for accurate pollution trend predictions.
+- **MLflow Integration**: Tracks experiments, logs metrics, and manages model versions.
+- **Hyperparameter Tuning**: Optimizes model performance using grid search techniques.
+- **Model Deployment**: Deploys the best-performing model as an API for real-time predictions.
+- **Visualization**: Generates correlation heatmaps and prediction vs. actual plots.
 
 ## Technologies Used
 
@@ -47,6 +61,12 @@ The **Environmental Data Management with DVC** project aims to efficiently colle
 - **Task Scheduler (Windows)**: Scheduling automated tasks.
 - **Google Drive**: Remote storage for DVC.
 - **Dotenv**: Managing environment variables.
+- **Pandas & NumPy**: Data manipulation and numerical operations.
+- **Scikit-learn**: Data preprocessing and evaluation metrics.
+- **TensorFlow & Keras**: Building and training LSTM models.
+- **MLflow**: Experiment tracking and model management.
+- **Flask**: Deploying the prediction API.
+- **Matplotlib & Seaborn**: Data visualization.
 
 ## Getting Started
 
@@ -102,6 +122,14 @@ LONGITUDE=your_longitude
 ```
 
 Replace `your_openweather_api_key`, `your_visual_crossing_api_key`, `your_latitude`, and `your_longitude` with your actual API keys and coordinates.
+
+#### MLflow Setup
+
+Ensure MLflow is installed and accessible. Start an MLflow server:
+
+```bash
+mlflow ui
+```
 
 ### DVC Remote Storage Setup
 
@@ -206,6 +234,88 @@ dvc repro
 dvc push
 git push
 ```
+
+## Data Preparation
+
+Data preparation is crucial for building effective machine learning models. The following steps outline how environmental data is loaded, merged, and preprocessed for model training.
+
+### Loading and Merging Data
+
+- **Air Quality Data**: Loaded from historical JSON files.
+- **Weather Data**: Loaded from historical JSON files.
+- **Merging**: DataFrames are merged on the `datetime` column to combine air quality and weather metrics.
+
+### Cleaning and Feature Engineering
+
+- **Missing Values**: Checked and handled to ensure data integrity.
+- **Outlier Removal**: Removed using Z-score thresholding to eliminate anomalous data points.
+- **Feature Scaling**: Applied `StandardScaler` to normalize features and targets.
+
+### Creating Sequences for LSTM
+
+- **Sequence Length**: 24 hours (past 24 data points) used to predict current pollution levels.
+- **Input Features**: Selected weather-related metrics.
+- **Target Variables**: Pollutant concentrations (SO₂, NO₂, PM₁₀, PM₂.₅, O₃, CO).
+
+## Model Development
+
+Leveraging time-series models, particularly LSTM networks, to predict pollution trends.
+
+### Model Architecture
+
+- **Input Layer**: Accepts sequences of past 24 hours of weather data.
+- **LSTM Layers**: Three stacked LSTM layers with dropout for regularization.
+- **Dense Layer**: Outputs predictions for each pollutant.
+- **Activation**: `tanh` for LSTM layers and `linear` for the output layer.
+
+### Compilation
+
+- **Optimizer**: Adam with varying learning rates.
+- **Loss Function**: Mean Squared Error (MSE).
+- **Metrics**: Mean Absolute Error (MAE).
+
+## MLflow Integration
+
+MLflow is integrated to track experiments, log metrics, and manage model versions.
+
+### Experiment Tracking
+
+- **Experiment Name**: `Pollution_Trend_Prediction_LSTM`
+- **Parameters Logged**: Hyperparameters such as units, dropout rates, learning rates, batch sizes, epochs, etc.
+- **Metrics Logged**: MSE and MAE for each pollutant and average metrics.
+
+### Hyperparameter Tuning
+
+Utilized grid search to explore combinations of hyperparameters:
+
+- **Units**: [128]
+- **Dropout**: [0.2, 0.3]
+- **Learning Rate**: [0.001, 0.0001]
+- **Batch Size**: [16, 32]
+- **Epochs**: [50]
+
+### Model Evaluation
+
+- **Metrics**: Calculated MSE, MAE, and R² scores for each pollutant.
+- **Visualization**: Plotted actual vs. predicted pollutant concentrations.
+- **Best Model Selection**: Based on lowest average MSE and MAE.
+
+## Deployment
+
+The best-performing model is deployed as an API using Flask, enabling real-time pollution trend predictions.
+
+### API Features
+
+- **Endpoint**: `/predict`
+- **Input**: JSON payload with current weather metrics.
+- **Output**: Predicted pollutant concentrations.
+
+### Deployment Steps
+
+1. **Load Trained Model**: Retrieved from MLflow's Model Registry.
+2. **Set Up Flask Server**: Created endpoints to handle prediction requests.
+3. **Model Inference**: Processes input data, applies scaling, and generates predictions.
+4. **Response**: Returns predictions in JSON format.
 
 ## Acknowledgments
 

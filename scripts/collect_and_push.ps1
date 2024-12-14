@@ -1,5 +1,3 @@
-# collect_and_push.ps1
-
 # Set Execution Policy to Bypass for this session
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 

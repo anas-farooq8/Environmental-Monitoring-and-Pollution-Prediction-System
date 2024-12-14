@@ -1,8 +1,8 @@
 # Python cache
-__pycache__/
-*.pyc
 /app/__pycache__/
 /app/*.pyc
+/app/*.pyo
+/app/*.pyd
 
 # Virtual environment
 /.venv

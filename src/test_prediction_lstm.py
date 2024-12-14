@@ -1,14 +1,9 @@
-# scripts/test_prediction.py
-
 import os
 import requests
-import json
 from dotenv import load_dotenv
 import pandas as pd
-import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 # Load environment variables from .env file
 load_dotenv()

@@ -2,10 +2,10 @@
 .env
 
 # Exclude Python cache files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+/app/__pycache__/
+/app/*.pyc
+/app/*.pyo
+/app/*.pyd
 
 # Exclude Git files
 .git

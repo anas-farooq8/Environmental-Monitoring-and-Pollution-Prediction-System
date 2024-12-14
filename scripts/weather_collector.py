@@ -1,5 +1,3 @@
-# scripts/weather_collector.py
-
 import os
 import requests
 import json

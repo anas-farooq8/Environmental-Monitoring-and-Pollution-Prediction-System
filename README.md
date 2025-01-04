@@ -1,6 +1,11 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/h2zn46__)
+# Environmental-Monitoring-and-Pollution-Prediction-System
 
-# fall24_mlops_project
+## Demo
+![1](https://github.com/user-attachments/assets/d874c112-9a43-4805-9a2b-90792880d61d)
+![2](https://github.com/user-attachments/assets/b1b0dd39-4cbb-459a-8333-b44542360c46)
+![Screenshot (6)](https://github.com/user-attachments/assets/6e617260-0638-4c6c-9782-11fb438d1b5c)
+![grafana](https://github.com/user-attachments/assets/77a0a6e6-8872-40ed-b9d7-57530315264f)
+
 
 ## Table of Contents
 
